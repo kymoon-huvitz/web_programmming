@@ -21,6 +21,9 @@ RUN pip install -r requirements.txt
 # 애플리케이션 코드 복사
 COPY . .
 
+# 🔧 인스턴스/앱 디렉터리 권한을 비루트 유저에게 이전
+RUN mkdir -p /app/instance && chown -R appuser:appuser /app
+
 # 비루트 유저 생성(보안)
 RUN useradd -m appuser
 USER appuser
