@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>방명록</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>방명록</h1>
+
+    <section class="card">
+      <h2>새 글 남기기</h2>
+      <form id="form">
+        <label>
+          이름
+          <input id="name" type="text" maxlength="50" placeholder="익명" />
+        </label>
+        <label>
+          메시지 <span class="req">*</span>
+          <textarea id="message" rows="3" maxlength="500" placeholder="하고 싶은 말을 적어주세요" required></textarea>
+        </label>
+        <button id="submitBtn" type="submit">등록</button>
+        <span id="status" class="status" aria-live="polite"></span>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="header-row">
+        <h2>방명록 목록</h2>
+        <button id="refreshBtn" type="button">새로고침</button>
+      </div>
+      <div id="list" class="list" aria-live="polite">불러오는 중...</div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
