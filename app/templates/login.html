@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Log In • Flask Auth{% endblock %}
+{% block content %}
+  <section class="card form-card">
+    <h2>로그인</h2>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <label>Email {{ form.email(size=32, placeholder='you@example.com') }}</label>
+      {% for e in form.email.errors %}<div class="error">{{ e }}</div>{% endfor %}
+
+      <label>Password {{ form.password(size=32, placeholder='비밀번호') }}</label>
+      {% for e in form.password.errors %}<div class="error">{{ e }}</div>{% endfor %}
+
+      {{ form.submit(class_='btn') }}
+    </form>
+    <p class="muted">계정이 없나요? <a href="{{ url_for('auth.register') }}">회원가입</a></p>
+  </section>
+{% endblock %}
