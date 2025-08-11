@@ -14,23 +14,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 작업 디렉터리
 WORKDIR /app
 
-# 의존성 먼저 복사 후 설치(레이어 캐시 활용)
+# 1) 의존성 먼저 설치 (캐시 최적화)
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# 애플리케이션 코드 복사
-COPY . .
+# 2) 비루트 유저 먼저 생성
+RUN useradd -m appuser
 
-# 🔧 인스턴스/앱 디렉터리 권한을 비루트 유저에게 이전
+# 3) 코드 복사할 때부터 소유자를 appuser로 지정  ← 핵심
+COPY --chown=appuser:appuser . .
+
+# 4) instance 폴더 보장(있어도 OK) + 소유권 확인  ← 안전장치
 RUN mkdir -p /app/instance && chown -R appuser:appuser /app
 
-# 비루트 유저 생성(보안)
-RUN useradd -m appuser
+# 5) 이제부터 비루트로 실행
 USER appuser
 
-# Render는 PORT 환경변수 제공. 로컬은 8000 기본값.
 EXPOSE 8000
 
-# --- 실행 ---
-# run:app -> run.py의 app 객체를 gunicorn이 실행
 CMD ["bash", "-lc", "gunicorn -w 3 -k gthread -t 120 -b 0.0.0.0:${PORT:-8000} run:app"]
