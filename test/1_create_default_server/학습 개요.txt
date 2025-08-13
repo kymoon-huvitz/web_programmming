@@ -1,0 +1,40 @@
+1단계: Flask 기본 서버 띄우기
+
+🎯 목표
+Flask가 어떻게 **요청(Request)**을 받고 **응답(Response)**을 주는지 흐름 이해
+
+run.py → app/__init__.py → routes/main.py 구조 해부
+
+직접 "Hello Flask" 페이지 만들어보기
+
+
+해설
+run.py
+
+프로그램의 시작점
+
+create_app()을 호출해서 Flask 앱 객체를 생성하고 실행
+
+app/__init__.py
+
+애플리케이션 팩토리 패턴
+
+Flask 앱 생성을 함수로 분리 → 테스트, 확장, 설정 분리 용이
+
+여기서 블루프린트(Blueprint) 등록
+
+app/routes/main.py
+
+Blueprint는 Flask에서 라우트를 모듈 단위로 묶는 도구
+
+@main_bp.route("/") → / 경로에 접근 시 home() 실행
+
+흐름
+
+python run.py 실행
+
+create_app()이 Flask 앱 생성
+
+main.py의 라우트를 앱에 등록
+
+브라우저 요청(GET /) → home() 실행 → "Hello Flask" 응답

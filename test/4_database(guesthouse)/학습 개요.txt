@@ -1,0 +1,44 @@
+4단계. 데이터베이스(SQLite)
+🎯 목표
+Flask‑SQLAlchemy로 ORM 기본 흐름 이해
+
+models.py에서 테이블(모델) 정의
+
+추가/조회/삭제 실습으로 CRUD 감 잡기
+
+간단한 방명록(Guestbook) 페이지 구현
+
+
+
+
+디버깅 포인트(자주 막히는 부분)
+ModuleNotFoundError: flask_sqlalchemy
+→ pip install flask-sqlalchemy 다시 확인. 가상환경이 다르면 그 환경에 설치해야 합니다.
+
+RuntimeError: Working outside of application context
+→ DB 작업은 앱 컨텍스트 필요. 라우트 안에서 하거나, 셸에서는 with app.app_context(): 사용.
+
+테이블이 안 만들어짐
+→ create_app()에서 with app.app_context(): db.create_all() 들어있는지 확인.
+
+한글 깨짐
+→ HTML <meta charset="UTF-8"> 확인. 터미널 출력 인코딩도 체크.
+
+
+
+
+한 번 더(개념 요약)
+ORM: SQL 안 쓰고 파이썬 객체로 DB 조작
+→ db.session.add(obj), db.session.commit(), Model.query.filter_by(...).all()
+
+요청 흐름: 브라우저 → 라우트 →(검증)→ DB → 템플릿 렌더 → 브라우저
+
+설계 이유
+
+extensions.py: 확장 모듈을 한 곳에서 초기화 → 모듈 간 순환참조 최소화
+
+models.py: DB 스키마를 한 눈에
+
+create_all(): 지금은 학습/프로토타입에 최적 (나중에 Alembic으로 마이그레이션 전환)
+
+

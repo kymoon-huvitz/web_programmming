@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>방명록</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 720px; margin: 40px auto; }
+    form, .entry { border: 1px solid #ddd; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+    .actions { display: inline-block; }
+    .meta { color: #666; font-size: 0.9rem; }
+    .flash { background: #f5f5f5; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <h1>방명록</h1>
+
+  <!-- 플래시 메시지 -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="flash">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- 입력 폼 -->
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    <p>
+      {{ form.name.label }}<br>
+      {{ form.name(size=32) }}
+      {% for e in form.name.errors %}<div class="meta">* {{ e }}</div>{% endfor %}
+    </p>
+    <p>
+      {{ form.message.label }}<br>
+      {{ form.message(rows=4, cols=60) }}
+      {% for e in form.message.errors %}<div class="meta">* {{ e }}</div>{% endfor %}
+    </p>
+    <p>{{ form.submit() }}</p>
+  </form>
+
+  <!-- 목록 -->
+  {% if entries %}
+    {% for e in entries %}
+      <div class="entry">
+        <div class="meta">{{ e.name }} · {{ e.created_at.strftime("%Y-%m-%d %H:%M") }} UTC</div>
+        <p>{{ e.message }}</p>
+        <form method="POST" action="{{ url_for('main.delete_entry', entry_id=e.id) }}">
+          <button type="submit">삭제</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>아직 방명록이 없습니다. 첫 글을 남겨보세요!</p>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,44 @@
+{# 
+base.html — 모든 페이지가 공통으로 상속하는 레이아웃 템플릿
+- 네비게이션 바, 플래시 메시지, 공통 CSS 등을 정의합니다.
+#}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Flask Auth{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <nav class="nav">
+    <a href="{{ url_for('main.index') }}" class="brand">Flask Auth</a>
+    <div class="spacer"></div>
+    {# 로그인 여부에 따라 메뉴 바뀜 #}
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('auth.logout') }}">Logout</a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">Login</a>
+      <a href="{{ url_for('auth.register') }}" class="primary">Sign Up</a>
+    {% endif %}
+  </nav>
+
+  <main class="container">
+    {# flash() 로 쌓은 메시지 보여주기 #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flash">
+          {% for category, message in messages %}
+            <li class="flash-{{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">Local Demo • Flask + SQLite</footer>
+</body>
+</html>

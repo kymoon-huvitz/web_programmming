@@ -1,0 +1,337 @@
+좋아! **VPS + Docker + HTTPS(Caddy)**로, 정말 처음이어도 그대로 따라 하면 되는 “완전 초보용” 배포 가이드를 줄게.
+지금 네 레포 구조가 레포 루트에 root/ 폴더 안에 앱이 있는 형태라고 했으니, 그 구조 그대로 배포하는 방법으로 설명할게요. (파일 이동 안 해도 됨)
+
+
+
+0) 준비물
+도메인(예: example.com) — 이미 있다면 OK
+
+VPS 한 대 (Ubuntu 22.04/24.04 권장; DigitalOcean/Hetzner/Linode 등 아무 곳이나)
+
+GitHub 레포 URL (현재 코드가 올라가 있어야 함)
+
+비용/편의 밸런스는 월 $4~$6짜리 소형 VPS로 충분합니다.
+
+
+
+
+
+1) DNS 먼저 연결 (A 레코드)
+도메인 관리 페이지에서 A 레코드를 VPS 공인 IP로 연결:
+
+호스트: @ (또는 www도 함께 추가)
+
+값: YOUR_SERVER_IP
+
+TTL: 기본값
+
+전파(수분~수십분) 후 아래로 확인:
+
+
+nslookup example.com
+# 또는
+ping example.com
+IP가 VPS IP로 보이면 OK.
+
+
+
+2) 서버 최초 셋업 (SSH 접속 → Docker 설치)
+
+로컬 PC(Windows PowerShell)에서:
+
+ssh root@YOUR_SERVER_IP
+# (처음이면 fingerprint 묻는 질문 yes → 비번 입력)
+
+
+서버 안에서:
+
+# 최신 업데이트
+apt update && apt -y upgrade
+
+# 기본 유틸
+apt -y install git curl ufw
+
+# 방화벽(SSH/HTTP/HTTPS 허용)
+ufw allow OpenSSH
+ufw allow 80,443/tcp
+ufw --force enable
+ufw status
+
+# Docker 설치(공식 스크립트)
+curl -fsSL https://get.docker.com | sh
+
+# Docker Compose 플러그인 확인(대부분 같이 설치됨)
+docker --version
+docker compose version
+
+(선택) 루트 외 사용자 만들고 도커 권한 주기:
+
+adduser deploy
+usermod -aG docker deploy
+# 이후엔 deploy로 접속해 작업하면 안전
+
+
+3) 코드 받기(서버에서 Git clone)
+서버에서 앱을 둘 디렉터리로 이동:
+
+cd /opt
+git clone https://github.com/your-id/your-repo.git app
+cd app
+ls
+# 여기서 'root/' 폴더가 보여야 함
+이미 push 해둔 네 레포 URL을 써줘.
+
+4) Dockerfile (레포 루트에 생성)
+포인트: 앱이 root/ 폴더에 있으므로, 그걸 기준으로 WORKDIR 설정
+서버에서 /opt/app(레포 루트)에 Dockerfile을 만들고 붙여넣기:
+
+
+
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# 앱이 들어갈 위치
+WORKDIR /app
+
+# 1) 의존성 먼저 설치(캐시)
+COPY root/requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt
+
+# 2) 비루트 유저 생성
+RUN useradd -m appuser
+
+# 3) 코드 복사(소유자 지정) - root/ 폴더만 가져옴
+COPY --chown=appuser:appuser root/ /app/
+
+# 4) instance 디렉터리 보장 + 소유권
+RUN mkdir -p /app/instance && chown -R appuser:appuser /app
+
+# 5) 비루트로 실행
+USER appuser
+
+EXPOSE 8000
+
+# run.py 안의 app 객체 실행
+CMD ["bash", "-lc", "gunicorn -w 3 -k gthread -t 120 -b 0.0.0.0:${PORT:-8000} run:app"]
+run.py가 root/ 안에 있으니, COPY는 root/ → /app/ 로 맞췄고, WORKDIR /app에서 run:app을 실행합니다.
+
+5) Caddy(HTTPS 자동) + 앱을 함께 띄우는 docker-compose.yml
+레포 루트(/opt/app)에 docker-compose.yml 생성:
+
+yaml
+복사
+편집
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
+같은 위치에 Caddyfile 생성:
+
+caddy
+복사
+편집
+{$DOMAIN} {
+    encode zstd gzip
+    reverse_proxy web:8000
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+같은 위치에 .env 생성(도메인/시크릿 설정):
+
+dotenv
+복사
+편집
+DOMAIN=example.com
+SECRET_KEY=put-a-long-random-string-here
+Caddy는 {$DOMAIN}을 읽어 자동으로 Let’s Encrypt HTTPS 인증서를 발급/갱신해줍니다. (포트 80/443 열려 있어야 함)
+
+6) 빌드 & 실행
+서버에서 /opt/app(docker-compose.yml이 있는 위치):
+
+bash
+복사
+편집
+# 첫 배포
+docker compose build
+
+# 실행(백그라운드)
+docker compose up -d
+
+# 상태/로그 확인
+docker compose ps
+docker compose logs -f caddy
+docker compose logs -f web
+브라우저에서 접속:
+
+http://example.com → 자동으로 https://example.com
+
+회원가입/로그인 테스트
+
+인증서 발급까지 수십 초 걸릴 수 있어요. Caddy 로그에 ACME/Let’s Encrypt 진행 상황이 찍힙니다.
+
+7) 업데이트(코드 수정 후 재배포)
+서버에서:
+
+bash
+복사
+편집
+cd /opt/app
+git pull
+docker compose build web
+docker compose up -d
+(이미지 캐시 덕분에 빠르게 올라갑니다)
+
+8) 자주 막히는 포인트 (빠른 해결)
+도메인 연결 안 됨 / SSL 안 생김
+→ DNS A 레코드가 서버 IP를 가리키는지 확인(전파에 5~30분).
+→ 80/443 포트 방화벽 허용됐는지 확인(ufw status).
+→ docker compose logs -f caddy에서 에러 메시지 확인.
+
+500 Internal Server Error(회원가입 시)
+→ docker compose logs -f web 로 Flask Traceback 확인.
+
+email-validator is not installed → requirements.txt에 있고 재빌드했는지 확인
+
+sqlite OperationalError: unable to open database file → /app/instance 권한(위 Dockerfile은 해결 포함)
+
+Missing user_loader → app/__init__.py에 @login_manager.user_loader가 있는지
+
+SQLite 데이터가 사라짐
+→ 컨테이너 재생성 시 초기화될 수 있어요. 운영에는 PostgreSQL 권장.
+(원하면 docker-compose.yml에 postgres 서비스/볼륨 추가하는 예시도 바로 만들어줄게요)
+
+도메인 없이 IP로만 접근하고 싶다
+→ Caddyfile을 :80/:443 호스트로 바꿀 수 있지만, HTTPS 자동 발급은 도메인이 있어야 합니다.
+
+9) (선택) VS Code 원격 연결로 편하게 작업
+로컬 VS Code → 확장 “Remote - SSH” 설치 → 서버에 SSH 연결 → /opt/app 열기
+→ 파일 수정 → 터미널에서 docker compose build && docker compose up -d
+
+끝! 체크리스트 요약
+ DNS A레코드 → 서버 IP
+
+ 서버에 Docker/Compose 설치
+
+ 레포 clone → 루트에 Dockerfile, docker-compose.yml, Caddyfile, .env 생성
+
+ .env의 DOMAIN/SECRET_KEY 채우기
+
+ docker compose up -d
+
+ https://도메인 접속 확인
+
+필요하면 위 4개 파일(Dockerfile, docker-compose.yml, Caddyfile, .env 템플릿)을 네 레포에 맞춰 바로 쓸 수 있게 묶어서 보내줄 수도 있어.
+또는 PostgreSQL까지 붙인 실무형 compose(백업/볼륨 포함)도 만들어줄게. 어떤 구성이 좋을까?
+
+
+
+
+
+
+
+나의 말:
+도메인은 어떻게 준비해? 내가 임의로 정하면 되는건가?
+
+
+ChatGPT의 말:
+도메인은 네가 마음대로 “지어내서” 쓰는 건 아니고, 실제로 구매하거나 무료로 발급받아야 해요.
+즉, 네가 쓰고 싶은 example.com 같은 주소를 도메인 등록기관에 등록해야 전 세계에서 접근이 가능합니다.
+
+1) 도메인 구매 방법 (가장 흔한 방법)
+유료: 연간 보통 1만~2만 원대 ( .com , .net , .co.kr 등)
+
+대표적인 등록업체:
+
+GoDaddy
+
+Namecheap
+
+Google Domains
+
+가비아 (한국)
+
+카페24 (한국)
+
+과정:
+
+원하는 주소 검색 (mycoolapp.com 같은 것)
+
+이미 사용 중이면 다른 이름 시도
+
+가능하면 결제 후 등록 완료
+
+DNS 관리 페이지에서 A 레코드를 VPS IP로 연결
+
+2) 무료 도메인 사용 방법 (테스트/연습용)
+Freenom ( .tk , .ml , .ga , .cf , .gq ) — 완전 무료, 1년 단위 갱신 가능
+→ https://www.freenom.com
+
+DuckDNS — .duckdns.org 하위 도메인 무료
+→ https://www.duckdns.org/
+
+Cloudflare Pages Subdomain — .pages.dev (웹 호스팅 + DNS 함께)
+→ https://pages.cloudflare.com/
+
+Render 무료 서브도메인 — .onrender.com 자동 제공
+(Render를 쓸 경우 직접 도메인 없어도 기본 URL이 생김)
+
+3) 도메인을 임의로 “정해서” 쓰는 경우
+로컬 개발이나 회사 내부망에서만 쓰는 경우에는
+예를 들어 myapp.local 같이 네가 지은 도메인을 hosts 파일 수정해서 쓸 수 있습니다.
+하지만 이건 네 PC나 네트워크 안에서만 동작하고, 전 세계에서 접속은 안 됩니다.
+
+예:
+
+Windows: C:\Windows\System32\drivers\etc\hosts
+
+lua
+복사
+편집
+127.0.0.1 myapp.local
+이후 http://myapp.local 로 접속 가능(본인 PC에서만)
+
+✅ 정리
+
+전 세계 접근 가능: 반드시 등록된 도메인 + DNS 설정 필요
+
+로컬/내부 전용: hosts 파일 수정해서 임의 도메인 가능
+
+원하면 내가 지금 무료 Freenom 도메인 등록 → VPS 연결 → HTTPS 발급 과정을 단계별로 적어줄 수도 있어.
+그렇게 하면 돈 안 쓰고도 지금 Flask 앱을 전 세계에서 볼 수 있어.
+바로 그 가이드 줄까?

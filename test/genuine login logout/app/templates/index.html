@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Home • Flask Auth{% endblock %}
+{% block content %}
+  <section class="card">
+    <h1>로컬 인증 데모</h1>
+    <p>회원가입, 로그인, 로그아웃이 되는 최소 예제입니다.</p>
+
+    {% if not current_user.is_authenticated %}
+      <div class="actions">
+        <a class="btn" href="{{ url_for('auth.register') }}">회원가입</a>
+        <a class="btn outline" href="{{ url_for('auth.login') }}">로그인</a>
+      </div>
+    {% else %}
+      <p><a class="btn" href="{{ url_for('main.dashboard') }}">대시보드로 이동</a></p>
+    {% endif %}
+  </section>
+{% endblock %}

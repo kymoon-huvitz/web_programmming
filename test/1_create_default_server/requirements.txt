@@ -1,0 +1,9 @@
+# 프로젝트에서 필요한 파이썬 패키지들
+Flask==3.0.3
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
+Flask-SQLAlchemy==3.1.1
+email-validator==2.2.0
+gunicorn==22.0.0
+# 운영 DB(PostgreSQL) 사용 시 (옵션):
+# psycopg[binary]==3.2.1

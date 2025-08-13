@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}로그인{% endblock %}
+{% block content %}
+<h1>로그인</h1>
+<form method="POST">
+  {{ form.hidden_tag() }}
+  <p>{{ form.username.label }}<br>{{ form.username(size=32) }}{% for e in form.username.errors %}<div>* {{ e }}</div>{% endfor %}</p>
+  <p>{{ form.password.label }}<br>{{ form.password() }}{% for e in form.password.errors %}<div>* {{ e }}</div>{% endfor %}</p>
+  <p>{{ form.remember() }} {{ form.remember.label }}</p>
+  <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

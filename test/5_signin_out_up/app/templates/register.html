@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}회원가입{% endblock %}
+{% block content %}
+<h1>회원가입</h1>
+<form method="POST">
+  {{ form.hidden_tag() }}
+  <p>{{ form.username.label }}<br>{{ form.username(size=32) }}{% for e in form.username.errors %}<div>* {{ e }}</div>{% endfor %}</p>
+  <p>{{ form.email.label }}<br>{{ form.email(size=40) }}{% for e in form.email.errors %}<div>* {{ e }}</div>{% endfor %}</p>
+  <p>{{ form.password.label }}<br>{{ form.password() }}{% for e in form.password.errors %}<div>* {{ e }}</div>{% endfor %}</p>
+  <p>{{ form.password2.label }}<br>{{ form.password2() }}{% for e in form.password2.errors %}<div>* {{ e }}</div>{% endfor %}</p>
+  <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

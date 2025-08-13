@@ -1,0 +1,25 @@
+2단계: 템플릿 엔진 (Jinja2)
+🎯 목표
+HTML 파일을 Flask에서 반환하는 방법 이해
+
+Jinja2 문법({{ 변수 }}, {% 블록 %}) 기초 학습
+
+HTML에서 파이썬 변수 출력
+
+
+
+
+해설
+render_template()
+
+Flask 내장 함수, templates/ 폴더에서 HTML 파일을 찾아 렌더링
+
+Jinja2 문법
+
+{{ 변수 }} → 변수를 HTML에 출력
+
+{% for item in list %} ... {% endfor %} → 반복문
+
+{% if 조건 %} ... {% endif %} → 조건문
+
+Flask → HTML 데이터 전달:

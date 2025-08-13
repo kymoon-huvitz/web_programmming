@@ -1,0 +1,40 @@
+5단계. 인증 (Flask‑Login + 비밀번호 해시)
+🎯 목표
+User 모델 만들기 (비밀번호는 절대 평문 저장 금지)
+
+generate_password_hash / check_password_hash 사용
+
+Flask-Login으로 로그인 상태 관리 (세션)
+
+@login_required로 보호 페이지 접근 제어
+
+
+
+🔑 세션/흐름 요약
+회원가입: 입력 검증 → 아이디/이메일 중복 확인 → 비밀번호 해시 저장
+
+로그인: 아이디 조회 → 해시 검증 → login_user()로 세션 생성
+
+보호 라우트 접근 시 비로그인 → login_view로 리다이렉트
+
+로그아웃: logout_user()로 세션 제거
+
+
+🧪 테스트 시나리오
+서버 실행 → /auth/register 접속, 아이디/비밀번호 입력 → 회원가입
+
+/auth/login에서 방금 아이디로 로그인 → 플래시 “로그인 성공!”
+
+/profile 접근 가능해짐 (로그인 필요)
+
+/auth/logout → 로그아웃 후 /profile 접근하면 로그인 페이지로 이동
+
+
+🔧 자주 막히는 포인트
+CSRF 에러: 폼 템플릿에 {{ form.hidden_tag() }} 빠지지 않았는지 확인.
+
+중복 아이디: unique=True + 라우트에서 중복 체크/플래시.
+
+로그인 후 원래 페이지로: 보호 라우트로 접근하면 next 파라미터가 붙습니다. 위 코드에서 처리.
+
+테이블 추가 후 반영 안 됨: 학습 단계는 db.create_all()로 충분. (기존 app.db가 스키마를 이미 가졌다면, 삭제 후 재생성하거나 Alembic 사용 고려)
