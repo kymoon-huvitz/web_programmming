@@ -5,6 +5,27 @@
 
 ## 빠른 실행(로컬, 가상환경 권장)
 
+
+# 1) 프로젝트 루트로 이동 (run.py 파일이 있는 위치로)
+cd D:\git_storage\web_programmming\root
+
+# 2) 새 가상환경 생성
+python -m venv .venv
+
+# 3) 가상환경 활성화
+.\.venv\Scripts\Activate
+
+# 4) pip 최신화 + 의존성 설치
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+(requirements.txt 없으면 pip install Flask 실행해서 파이썬 설치)
+
+# 5) 설치 확인(선택)
+python -c "import flask_login, flask_sqlalchemy, flask; print('OK', flask.__version__)"
+
+# 6) 실행
+python run.py
+
 ```powershell
 cd root
 python -m venv .venv
@@ -27,4 +48,6 @@ python run.py
 - `root/config.py` — 설정(SECRET_KEY/DB)
 - `root/requirements.txt` — 패키지 목록
 ```
+
+
 
